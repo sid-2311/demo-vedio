@@ -208,10 +208,15 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
   // Start user's camera
   const startLocalCamera = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
-        audio: true
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: true
+        });
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      }
       localStreamRef.current = stream;
       setHasCamStream(true);
       if (localVideoRef.current) {
@@ -386,11 +391,16 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         { urls: 'stun:stun4.l.google.com:19302' },
         { urls: 'stun:global.stun.twilio.com:3478' },
         { urls: 'stun:stun.services.mozilla.com' },
+        { urls: 'stun:stun.relay.metered.ca:80' },
         {
           urls: [
             'turn:openrelay.metered.ca:80',
             'turn:openrelay.metered.ca:443',
-            'turn:openrelay.metered.ca:443?transport=tcp'
+            'turn:openrelay.metered.ca:443?transport=tcp',
+            'turns:openrelay.metered.ca:443?transport=tcp',
+            'turn:relays.metered.ca:80',
+            'turn:relays.metered.ca:443',
+            'turn:relays.metered.ca:443?transport=tcp'
           ],
           username: 'openrelayproject',
           credential: 'openrelayproject'
@@ -1461,6 +1471,8 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
                     ref={remoteVideoRef}
                     autoPlay
                     playsInline
+                    webkit-playsinline="true"
+                    x5-playsinline="true"
                     className={`w-full h-full object-cover ${remoteVideoError ? 'hidden' : ''}`}
                   />
                 )}
@@ -1534,6 +1546,8 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
                   autoPlay
                   muted
                   playsInline
+                  webkit-playsinline="true"
+                  x5-playsinline="true"
                   style={{ transform: 'scaleX(-1)' }}
                   className={`w-full h-full object-cover ${(!hasCamStream || isCameraOff) ? 'hidden' : ''}`}
                 />
