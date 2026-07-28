@@ -381,6 +381,10 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        { urls: 'stun:global.stun.twilio.com:3478' },
+        { urls: 'stun:stun.services.mozilla.com' },
         {
           urls: [
             'turn:openrelay.metered.ca:80',
@@ -390,7 +394,8 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
           username: 'openrelayproject',
           credential: 'openrelayproject'
         }
-      ]
+      ],
+      iceCandidatePoolSize: 10,
     };
 
     const handleSearchStart = async (payload) => {
@@ -435,13 +440,18 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         }
 
         pc.ontrack = (event) => {
-          console.log(`[RTC] Remote Track received! [Kind: ${event.track.kind}]`, event.streams[0]);
-          if (event.streams && event.streams[0]) {
-            remoteStreamRef.current = event.streams[0];
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = event.streams[0];
-              remoteVideoRef.current.play().catch(() => {});
-            }
+          console.log(`[RTC] Remote Track received! [Kind: ${event.track.kind}]`);
+          let stream = (event.streams && event.streams[0]) || remoteStreamRef.current;
+          if (!stream) {
+            stream = new MediaStream();
+          }
+          if (!stream.getTracks().some((t) => t.id === event.track.id)) {
+            stream.addTrack(event.track);
+          }
+          remoteStreamRef.current = stream;
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+            remoteVideoRef.current.play().catch((err) => console.log('[RTC] Video play error:', err));
           }
         };
 
@@ -541,13 +551,18 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         }
 
         pc.ontrack = (event) => {
-          console.log(`%c[WEBRTC CALL 📺] Remote Stream Track Received!`, 'color: #f59e0b; font-weight: bold;', event.streams[0]);
-          if (event.streams && event.streams[0]) {
-            remoteStreamRef.current = event.streams[0];
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = event.streams[0];
-              remoteVideoRef.current.play().catch(() => {});
-            }
+          console.log(`%c[WEBRTC CALL 📺] Remote Stream Track Received!`, 'color: #f59e0b; font-weight: bold;');
+          let stream = (event.streams && event.streams[0]) || remoteStreamRef.current;
+          if (!stream) {
+            stream = new MediaStream();
+          }
+          if (!stream.getTracks().some((t) => t.id === event.track.id)) {
+            stream.addTrack(event.track);
+          }
+          remoteStreamRef.current = stream;
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+            remoteVideoRef.current.play().catch((err) => console.log('[RTC] Video play error:', err));
           }
         };
 
