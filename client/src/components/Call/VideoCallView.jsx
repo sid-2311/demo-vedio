@@ -608,12 +608,22 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
 
-        p2pSignaling.send('MATCH_ANSWER', { targetPeerId: payload.senderPeerId, answer });
+        p2pSignaling.send('MATCH_ANSWER', {
+          targetPeerId: payload.senderPeerId,
+          answer,
+          userProfile: {
+            id: user?.id || p2pSignaling.peerId,
+            name: user?.name || 'Stranger',
+            country: user?.country || 'Worldwide',
+            age: user?.age || 24,
+            avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+          }
+        });
 
         setMatchedUser({
           id: payload.senderPeerId,
           name: payload.userProfile?.name || 'Live Peer',
-          country: payload.userProfile?.country || 'Live Multi-Tab Peer',
+          country: payload.userProfile?.country || 'Live Stranger',
           age: payload.userProfile?.age || 24,
           avatar: payload.userProfile?.avatar || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
           greeting: `Connected live with ${payload.userProfile?.name || 'Stranger'}! 👋`
@@ -662,6 +672,29 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         console.log(`%c[WEBRTC CALL 🎉] Received MATCH_ANSWER! Connection ESTABLISHED!`, 'color: #06b6d4; font-weight: bold;', payload);
         await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.answer));
         await processIceQueue();
+
+        setMatchedUser({
+          id: payload.senderPeerId,
+          name: payload.userProfile?.name || 'Live Peer',
+          country: payload.userProfile?.country || 'Live Stranger',
+          age: payload.userProfile?.age || 24,
+          avatar: payload.userProfile?.avatar || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80',
+          greeting: `Connected live with ${payload.userProfile?.name || 'Stranger'}! 👋`
+        });
+        setSessionId(`p2p-${Date.now()}`);
+        setCallState('connected');
+        setChatOpen(true);
+
+        clearInterval(timerRef.current);
+        timerRef.current = setInterval(() => {
+          setCallDuration((prev) => {
+            const next = prev + 1;
+            if (next >= maxAllowedSecondsRef.current) {
+              setShowExtendModal(true);
+            }
+            return next;
+          });
+        }, 1000);
       }
     };
 
