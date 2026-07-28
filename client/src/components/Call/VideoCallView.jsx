@@ -443,6 +443,9 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
           console.log(`[RTC] Signaling State changed: ${pc.signalingState}`);
         };
 
+        if (!localStreamRef.current) {
+          await startLocalCamera();
+        }
         if (localStreamRef.current) {
           console.log('[RTC] getUserMedia Started & Local Stream Tracks exist. Adding Tracks...');
           localStreamRef.current.getTracks().forEach((t) => {
@@ -486,7 +489,10 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         };
 
         console.log('[RTC] Creating Offer...');
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer({
+          offerToReceiveVideo: true,
+          offerToReceiveAudio: true
+        });
         console.log('[RTC] Local Description Set (Offer)');
         await pc.setLocalDescription(offer);
 
@@ -567,6 +573,9 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         const pc = new RTCPeerConnection(rtcConfig);
         pcRef.current = pc;
 
+        if (!localStreamRef.current) {
+          await startLocalCamera();
+        }
         if (localStreamRef.current) {
           localStreamRef.current.getTracks().forEach((t) => pc.addTrack(t, localStreamRef.current));
         }
@@ -605,7 +614,10 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
         await processIceQueue();
 
-        const answer = await pc.createAnswer();
+        const answer = await pc.createAnswer({
+          offerToReceiveVideo: true,
+          offerToReceiveAudio: true
+        });
         await pc.setLocalDescription(answer);
 
         p2pSignaling.send('MATCH_ANSWER', {
