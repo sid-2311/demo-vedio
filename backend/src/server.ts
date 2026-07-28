@@ -14,6 +14,16 @@ async function bootstrap() {
   app.use(cors({ origin: '*' }));
   app.use(express.json());
 
+  // Root route
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'ok',
+      service: 'mediasoup-sfu-server',
+      message: 'MediaSoup SFU Backend Server is running',
+      health: '/api/health',
+    });
+  });
+
   // Health Check API
   app.get('/api/health', (req, res) => {
     res.json({
