@@ -180,6 +180,11 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
 
   // Cleanup P2P & MediaSoup WebRTC Connection
   const cleanupP2P = useCallback(() => {
+    if (activeRemotePeerIdRef.current) {
+      try {
+        p2pSignaling.send('PEER_DISCONNECTED', { targetPeerId: activeRemotePeerIdRef.current });
+      } catch (e) {}
+    }
     try {
       mediasoupClientService.leave();
     } catch (e) {}
@@ -265,6 +270,9 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
       if (onOpenWallet) onOpenWallet();
       return;
     }
+
+    const freshPeerId = `peer_${Math.random().toString(36).substr(2, 9)}_${Date.now()}`;
+    p2pSignaling.setPeerId(freshPeerId);
 
     cleanupP2P();
     setCallState('searching');
@@ -746,12 +754,23 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
       setCallDuration(0);
     };
 
+    const handlePeerDisconnected = (payload) => {
+      if (payload.targetPeerId === p2pSignaling.peerId || payload.senderPeerId === activeRemotePeerIdRef.current) {
+        console.log('[RTC] Peer disconnected signal received.');
+        triggerToast('Stranger disconnected 👋');
+        cleanupP2P();
+        clearInterval(timerRef.current);
+        setCallState('ended');
+      }
+    };
+
     const unSubSearch = p2pSignaling.on('SEARCH_START', handleSearchStart);
     const unSubOffer = p2pSignaling.on('MATCH_OFFER', handleMatchOffer);
     const unSubAnswer = p2pSignaling.on('MATCH_ANSWER', handleMatchAnswer);
     const unSubIce = p2pSignaling.on('ICE_CANDIDATE', handleIceCandidate);
     const unSubChat = p2pSignaling.on('P2P_CHAT', handleP2PChat);
     const unSubEnd = p2pSignaling.on('END_CALL', handleEndCall);
+    const unSubPeerDisconnected = p2pSignaling.on('PEER_DISCONNECTED', handlePeerDisconnected);
 
     return () => {
       unSubSearch();
@@ -760,6 +779,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
       unSubIce();
       unSubChat();
       unSubEnd();
+      unSubPeerDisconnected();
     };
   }, [user, cleanupP2P, stopLocalCamera]);
 
