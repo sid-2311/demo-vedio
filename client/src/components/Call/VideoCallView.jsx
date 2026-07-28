@@ -89,6 +89,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
   // Refs
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const remoteAudioRef = useRef(null);
   const timerRef = useRef(null);
   const chatEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -452,6 +453,13 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
 
         pc.ontrack = (event) => {
           console.log(`[RTC] Remote Track received! [Kind: ${event.track.kind}]`);
+
+          if (event.track.kind === 'audio' && remoteAudioRef.current) {
+            const audioStream = (event.streams && event.streams[0]) || new MediaStream([event.track]);
+            remoteAudioRef.current.srcObject = audioStream;
+            remoteAudioRef.current.play().catch((err) => console.log('[RTC] Audio play error:', err));
+          }
+
           let stream = (event.streams && event.streams[0]) || remoteStreamRef.current;
           if (!stream) {
             stream = new MediaStream();
@@ -460,21 +468,11 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
             stream.addTrack(event.track);
           }
           remoteStreamRef.current = stream;
+
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
-            const playPromise = remoteVideoRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {
-                if (remoteVideoRef.current) {
-                  remoteVideoRef.current.muted = true;
-                  remoteVideoRef.current.play().then(() => {
-                    setTimeout(() => {
-                      if (remoteVideoRef.current) remoteVideoRef.current.muted = false;
-                    }, 500);
-                  }).catch((err) => console.log('[RTC] Video play error:', err));
-                }
-              });
-            }
+            remoteVideoRef.current.muted = true;
+            remoteVideoRef.current.play().catch((err) => console.log('[RTC] Video play error:', err));
           }
         };
 
@@ -575,6 +573,13 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
 
         pc.ontrack = (event) => {
           console.log(`%c[WEBRTC CALL 📺] Remote Stream Track Received!`, 'color: #f59e0b; font-weight: bold;');
+
+          if (event.track.kind === 'audio' && remoteAudioRef.current) {
+            const audioStream = (event.streams && event.streams[0]) || new MediaStream([event.track]);
+            remoteAudioRef.current.srcObject = audioStream;
+            remoteAudioRef.current.play().catch((err) => console.log('[RTC] Audio play error:', err));
+          }
+
           let stream = (event.streams && event.streams[0]) || remoteStreamRef.current;
           if (!stream) {
             stream = new MediaStream();
@@ -583,21 +588,11 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
             stream.addTrack(event.track);
           }
           remoteStreamRef.current = stream;
+
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
-            const playPromise = remoteVideoRef.current.play();
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {
-                if (remoteVideoRef.current) {
-                  remoteVideoRef.current.muted = true;
-                  remoteVideoRef.current.play().then(() => {
-                    setTimeout(() => {
-                      if (remoteVideoRef.current) remoteVideoRef.current.muted = false;
-                    }, 500);
-                  }).catch((err) => console.log('[RTC] Video play error:', err));
-                }
-              });
-            }
+            remoteVideoRef.current.muted = true;
+            remoteVideoRef.current.play().catch((err) => console.log('[RTC] Video play error:', err));
           }
         };
 
@@ -1467,14 +1462,22 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    webkit-playsinline="true"
-                    x5-playsinline="true"
-                    className={`w-full h-full object-cover ${remoteVideoError ? 'hidden' : ''}`}
-                  />
+                  <>
+                    <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      muted
+                      playsInline
+                      webkit-playsinline="true"
+                      x5-playsinline="true"
+                      className={`w-full h-full object-cover ${remoteVideoError ? 'hidden' : ''}`}
+                    />
+                    <audio
+                      ref={remoteAudioRef}
+                      autoPlay
+                      playsInline
+                    />
+                  </>
                 )}
                 {remoteVideoError && (
                   /* High quality animated fallback stream card */
