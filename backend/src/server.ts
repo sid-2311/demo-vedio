@@ -9,6 +9,32 @@ import { workerManager } from './managers/WorkerManager';
 import { roomManager } from './managers/RoomManager';
 import { setupSocketHandler } from './signaling/socketHandler';
 
+/**
+ * Self-ping keep-alive service to prevent Render free instance spin-down.
+ */
+function startSelfPing(port: number) {
+  const url = process.env.RENDER_EXTERNAL_URL
+    ? `${process.env.RENDER_EXTERNAL_URL}/api/ping`
+    : `http://127.0.0.1:${port}/api/ping`;
+
+  // Default interval: 5 minutes (300,000 ms) or custom env setting
+  const intervalMs = parseInt(process.env.SELF_PING_INTERVAL_MS || '300000', 10);
+
+  console.log(`[KeepAlive] Self-ping service started for ${url} (Interval: ${intervalMs / 1000}s)`);
+
+  setInterval(async () => {
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        console.log(`[KeepAlive] Auto self-ping success [${new Date().toLocaleTimeString()}]: HTTP ${res.status}`);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[KeepAlive] Auto self-ping warning: ${msg}`);
+    }
+  }, intervalMs);
+}
+
 async function bootstrap() {
   const app = express();
   app.use(cors({ origin: '*' }));
@@ -28,6 +54,15 @@ async function bootstrap() {
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'ok',
+      service: 'mediasoup-sfu-server',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Self-Ping / Keep-Alive API
+  app.get('/api/ping', (req, res) => {
+    res.json({
+      status: 'pong',
       service: 'mediasoup-sfu-server',
       timestamp: new Date().toISOString(),
     });
@@ -91,6 +126,9 @@ async function bootstrap() {
  Coturn Domain: ${config.turn.domain}:${config.turn.port}
 ============================================================
     `);
+
+    // Start Keep-Alive Self-Ping service to prevent Render free-tier sleep
+    startSelfPing(port);
   });
 
   // Graceful shutdown
