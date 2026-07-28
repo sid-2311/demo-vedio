@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import os from 'os';
-import { RtpCodecCapability, WorkerLogLevel, WorkerLogTag } from 'mediasoup/node/lib/types';
+import { types } from 'mediasoup';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
@@ -12,7 +12,7 @@ const ANNOUNCED_IP = process.env.ANNOUNCED_IP || '127.0.0.1';
  * Standardized Media Codec Capabilities shared across ALL routers.
  * Ensures identical codec configuration across all worker router instances.
  */
-const mediaCodecs: RtpCodecCapability[] = [
+const mediaCodecs: types.RtpCodecCapability[] = [
   {
     kind: 'audio',
     mimeType: 'audio/opus',
@@ -65,7 +65,7 @@ export const config = {
   mediasoup: {
     numWorkers: parseInt(process.env.MEDIASOUP_NUM_WORKERS || '0', 10) || Math.min(Object.keys(os.cpus()).length || 2, 2),
     workerSettings: {
-      logLevel: (process.env.MEDIASOUP_LOG_LEVEL || 'warn') as WorkerLogLevel,
+      logLevel: (process.env.MEDIASOUP_LOG_LEVEL || 'warn') as types.WorkerLogLevel,
       logTags: [
         'info',
         'ice',
@@ -79,7 +79,7 @@ export const config = {
         'simulcast',
         'svc',
         'sctp',
-      ] as WorkerLogTag[],
+      ] as types.WorkerLogTag[],
       rtcMinPort: parseInt(process.env.MEDIASOUP_MIN_PORT || '40000', 10),
       rtcMaxPort: parseInt(process.env.MEDIASOUP_MAX_PORT || '49999', 10),
     },

@@ -96,7 +96,7 @@ async function bootstrap() {
   process.on('SIGTERM', shutdown);
 }
 
-bootstrap().catch((err) => {
+bootstrap().catch((err: unknown) => {
   console.error('[Server] Fatal Error during server bootstrap:', err);
   process.exit(1);
 });

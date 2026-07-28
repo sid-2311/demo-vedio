@@ -1,4 +1,4 @@
-import { Router, WebRtcTransport } from 'mediasoup/node/lib/types';
+import { types } from 'mediasoup';
 import { config } from '../config';
 import { getIceServers, IceServer } from '../utils/turnAuth';
 
@@ -16,10 +16,10 @@ export class TransportManager {
    * Creates a WebRtcTransport on the specified router for a given peer.
    */
   async createWebRtcTransport(
-    router: Router,
+    router: types.Router,
     socketId: string,
     direction: 'send' | 'recv'
-  ): Promise<{ transport: WebRtcTransport; params: TransportParams }> {
+  ): Promise<{ transport: types.WebRtcTransport; params: TransportParams }> {
     const transportOptions = {
       ...config.mediasoup.webRtcTransportOptions,
     };
@@ -31,7 +31,7 @@ export class TransportManager {
     );
 
     // Monitor ICE state changes for real-world network debugging
-    transport.on('icestatechange', (iceState) => {
+    transport.on('icestatechange', (iceState: types.IceState) => {
       console.log(
         `[TransportManager] Transport ${transport.id} (${direction}) ICE State -> ${iceState} [Peer: ${socketId}]`
       );
@@ -43,7 +43,7 @@ export class TransportManager {
       }
     });
 
-    transport.on('dtlsstatechange', (dtlsState) => {
+    transport.on('dtlsstatechange', (dtlsState: types.DtlsState) => {
       console.log(
         `[TransportManager] Transport ${transport.id} (${direction}) DTLS State -> ${dtlsState} [Peer: ${socketId}]`
       );
@@ -70,7 +70,7 @@ export class TransportManager {
   /**
    * Triggers an ICE restart on an existing transport when switching networks (e.g. Wi-Fi to cellular).
    */
-  async restartIce(transport: WebRtcTransport): Promise<unknown> {
+  async restartIce(transport: types.WebRtcTransport): Promise<unknown> {
     console.log(`[TransportManager] Restarting ICE for transport ${transport.id}...`);
     const iceParameters = await transport.restartIce();
     return iceParameters;

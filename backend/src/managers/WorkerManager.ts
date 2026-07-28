@@ -1,11 +1,11 @@
 import * as mediasoup from 'mediasoup';
-import { Worker } from 'mediasoup/node/lib/types';
+import { types } from 'mediasoup';
 import { config } from '../config';
 
 export type WorkerCrashCallback = (workerPid: number) => void;
 
 export class WorkerManager {
-  private workers: Worker[] = [];
+  private workers: types.Worker[] = [];
   private nextWorkerIdx = 0;
   private onWorkerCrashCallbacks: WorkerCrashCallback[] = [];
 
@@ -26,7 +26,7 @@ export class WorkerManager {
   /**
    * Spawns a single mediasoup worker and attaches death listener.
    */
-  private async createWorker(): Promise<Worker> {
+  private async createWorker(): Promise<types.Worker> {
     const worker = await mediasoup.createWorker(config.mediasoup.workerSettings);
 
     console.log(`[WorkerManager] Worker spawned [PID: ${worker.pid}]`);
@@ -40,7 +40,7 @@ export class WorkerManager {
 
       // Respawn replacement worker process immediately
       console.log(`[WorkerManager] Respawning replacement worker process...`);
-      this.createWorker().catch((err) => {
+      this.createWorker().catch((err: unknown) => {
         console.error('[WorkerManager] Failed to respawn worker:', err);
       });
 
@@ -59,7 +59,7 @@ export class WorkerManager {
   /**
    * Gets the next worker in round-robin sequence to distribute room routers.
    */
-  getNextWorker(): Worker {
+  getNextWorker(): types.Worker {
     if (this.workers.length === 0) {
       throw new Error('[WorkerManager] No active mediasoup workers available in pool');
     }

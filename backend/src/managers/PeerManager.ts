@@ -1,4 +1,4 @@
-import { WebRtcTransport, Producer, Consumer } from 'mediasoup/node/lib/types';
+import { types } from 'mediasoup';
 
 export interface PeerInfo {
   socketId: string;
@@ -10,10 +10,10 @@ export class Peer {
   public socketId: string;
   public displayName: string;
   public roomId: string;
-  public sendTransport?: WebRtcTransport;
-  public recvTransport?: WebRtcTransport;
-  public producers: Map<string, Producer> = new Map(); // producerId -> Producer
-  public consumers: Map<string, Consumer> = new Map(); // consumerId -> Consumer
+  public sendTransport?: types.WebRtcTransport;
+  public recvTransport?: types.WebRtcTransport;
+  public producers: Map<string, types.Producer> = new Map(); // producerId -> Producer
+  public consumers: Map<string, types.Consumer> = new Map(); // consumerId -> Consumer
 
   constructor(socketId: string, displayName: string, roomId: string) {
     this.socketId = socketId;
@@ -21,7 +21,7 @@ export class Peer {
     this.roomId = roomId;
   }
 
-  addProducer(producer: Producer): void {
+  addProducer(producer: types.Producer): void {
     this.producers.set(producer.id, producer);
 
     producer.on('transportclose', () => {
@@ -30,7 +30,7 @@ export class Peer {
     });
   }
 
-  getProducer(producerId: string): Producer | undefined {
+  getProducer(producerId: string): types.Producer | undefined {
     return this.producers.get(producerId);
   }
 
@@ -42,7 +42,7 @@ export class Peer {
     }
   }
 
-  addConsumer(consumer: Consumer): void {
+  addConsumer(consumer: types.Consumer): void {
     this.consumers.set(consumer.id, consumer);
 
     consumer.on('transportclose', () => {
@@ -56,7 +56,7 @@ export class Peer {
     });
   }
 
-  getConsumer(consumerId: string): Consumer | undefined {
+  getConsumer(consumerId: string): types.Consumer | undefined {
     return this.consumers.get(consumerId);
   }
 

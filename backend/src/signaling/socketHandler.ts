@@ -198,7 +198,7 @@ export function setupSocketHandler(io: SocketIOServer): void {
         if (kind === 'audio') {
           const room = roomManager.getRoom(peer.roomId);
           if (room) {
-            room.activeSpeakerObserver.addProducer({ producerId: producer.id }).catch((err) => {
+            room.activeSpeakerObserver.addProducer({ producerId: producer.id }).catch((err: unknown) => {
               console.error('[Signaling] Failed to add audio producer to ActiveSpeakerObserver:', err);
             });
           }

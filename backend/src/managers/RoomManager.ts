@@ -1,4 +1,4 @@
-import { Router, ActiveSpeakerObserver, Producer } from 'mediasoup/node/lib/types';
+import { types } from 'mediasoup';
 import { Server as SocketIOServer } from 'socket.io';
 import { config } from '../config';
 import { workerManager } from './WorkerManager';
@@ -6,9 +6,9 @@ import { peerManager, Peer } from './PeerManager';
 
 export interface Room {
   id: string;
-  router: Router;
+  router: types.Router;
   workerPid: number;
-  activeSpeakerObserver: ActiveSpeakerObserver;
+  activeSpeakerObserver: types.ActiveSpeakerObserver;
   peers: Map<string, Peer>;
 }
 
@@ -53,7 +53,7 @@ export class RoomManager {
     });
 
     // Broadcast active speaker updates to room peers
-    activeSpeakerObserver.on('dominantspeaker', ({ producer }: { producer: Producer }) => {
+    activeSpeakerObserver.on('dominantspeaker', ({ producer }: { producer: types.Producer }) => {
       const peer = Array.from(peerManager.getPeersInRoom(roomId)).find((p) =>
         Array.from(p.producers.values()).some((prod) => prod.id === producer.id)
       );
@@ -123,7 +123,7 @@ export class RoomManager {
           interval: 300,
         });
 
-        newActiveSpeakerObserver.on('dominantspeaker', ({ producer }: { producer: Producer }) => {
+        newActiveSpeakerObserver.on('dominantspeaker', ({ producer }: { producer: types.Producer }) => {
           const peer = Array.from(peerManager.getPeersInRoom(roomId)).find((p) =>
             Array.from(p.producers.values()).some((prod) => prod.id === producer.id)
           );
