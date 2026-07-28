@@ -17,9 +17,9 @@ class SocketService {
     if (!url) {
       if (typeof window !== 'undefined') {
         const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        url = isLocal ? 'http://localhost:3000' : window.location.origin;
+        url = isLocal ? 'http://localhost:3000' : 'https://stranger-vedio-backend.onrender.com';
       } else {
-        url = 'http://localhost:3000';
+        url = 'https://stranger-vedio-backend.onrender.com';
       }
     }
 
