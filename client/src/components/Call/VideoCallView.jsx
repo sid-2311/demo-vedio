@@ -306,7 +306,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
     if (searchIntervalRef.current) clearInterval(searchIntervalRef.current);
     searchIntervalRef.current = setInterval(sendSearchSignal, 1500);
 
-    // Fallback: If no real peer responds within 5s, connect demo partner
+    // Fallback: If no real peer responds within 45s, connect demo partner
     setTimeout(() => {
       if (!p2pMatchedRef.current && searchingRef.current) {
         const isAlex = user?.email?.includes('alex') || user?.name?.toLowerCase()?.includes('alex');
@@ -343,6 +343,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
             country: 'Spain',
             age: 24,
             avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80',
+            videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
             greeting: 'Hey there! Live P2P connection ready 👋'
           };
         }
@@ -355,7 +356,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
         setSessionId(`sess-${Date.now()}`);
         setCallState('connected');
         setChatOpen(true);
-        setIsP2PCall(true);
+        setIsP2PCall(false);
 
         const targetPeerId = isAlex ? 'stranger_demo_elena_v7' : 'stranger_demo_alex_v7';
         activeRemotePeerIdRef.current = targetPeerId;
@@ -451,7 +452,19 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
           remoteStreamRef.current = stream;
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
-            remoteVideoRef.current.play().catch((err) => console.log('[RTC] Video play error:', err));
+            const playPromise = remoteVideoRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                if (remoteVideoRef.current) {
+                  remoteVideoRef.current.muted = true;
+                  remoteVideoRef.current.play().then(() => {
+                    setTimeout(() => {
+                      if (remoteVideoRef.current) remoteVideoRef.current.muted = false;
+                    }, 500);
+                  }).catch((err) => console.log('[RTC] Video play error:', err));
+                }
+              });
+            }
           }
         };
 
@@ -562,7 +575,19 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
           remoteStreamRef.current = stream;
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = stream;
-            remoteVideoRef.current.play().catch((err) => console.log('[RTC] Video play error:', err));
+            const playPromise = remoteVideoRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                if (remoteVideoRef.current) {
+                  remoteVideoRef.current.muted = true;
+                  remoteVideoRef.current.play().then(() => {
+                    setTimeout(() => {
+                      if (remoteVideoRef.current) remoteVideoRef.current.muted = false;
+                    }, 500);
+                  }).catch((err) => console.log('[RTC] Video play error:', err));
+                }
+              });
+            }
           }
         };
 
@@ -1423,12 +1448,22 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
 
               {/* Video Content / Live WebRTC Stream / Fallback */}
               <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className={`w-full h-full object-cover ${remoteVideoError ? 'hidden' : ''}`}
-                />
+                {matchedUser?.videoUrl && !isP2PCall ? (
+                  <video
+                    src={matchedUser.videoUrl}
+                    autoPlay
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    ref={remoteVideoRef}
+                    autoPlay
+                    playsInline
+                    className={`w-full h-full object-cover ${remoteVideoError ? 'hidden' : ''}`}
+                  />
+                )}
                 {remoteVideoError && (
                   /* High quality animated fallback stream card */
                   <div className="w-full h-full relative flex flex-col items-center justify-center p-4 sm:p-6 bg-gradient-to-b from-slate-900 via-violet-950/40 to-slate-950">
