@@ -24,27 +24,41 @@ export function getIceServers(usernamePrefix = 'peer'): IceServer[] {
   const tlsPort = config.turn.tlsPort;
 
   return [
-    // Standard public STUN server for local NAT discovery
+    // Standard public STUN servers for NAT discovery
     {
       urls: [
         'stun:stun.l.google.com:19302',
         'stun:stun1.l.google.com:19302',
-        `stun:${domain}:${port}`,
+        'stun:stun2.l.google.com:19302',
+        'stun:stun3.l.google.com:19302',
+        'stun:stun4.l.google.com:19302',
+        'stun:global.stun.twilio.com:3478',
+        'stun:stun.services.mozilla.com',
       ],
     },
-    // Dynamic TURN over UDP (preferred for performance)
+    // Metered OpenRelay public TURN fallback for NAT/Firewall traversal
+    {
+      urls: [
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp',
+      ],
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
+    },
+    // Dynamic TURN over UDP (if custom TURN domain configured)
     {
       urls: [`turn:${domain}:${port}?transport=udp`],
       username,
       credential,
     },
-    // Dynamic TURN over TCP (fallback when UDP is blocked by firewalls)
+    // Dynamic TURN over TCP
     {
       urls: [`turn:${domain}:${port}?transport=tcp`],
       username,
       credential,
     },
-    // Dynamic TURN over TLS (port 5349 fallback for strict corporate proxies)
+    // Dynamic TURN over TLS
     {
       urls: [`turns:${domain}:${tlsPort}?transport=tcp`],
       username,

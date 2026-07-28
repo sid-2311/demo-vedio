@@ -6,7 +6,12 @@ import { types } from 'mediasoup';
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const LISTEN_IP = process.env.LISTEN_IP || '0.0.0.0';
-const ANNOUNCED_IP = process.env.ANNOUNCED_IP || process.env.RENDER_EXTERNAL_URL || undefined;
+const ANNOUNCED_IP =
+  process.env.ANNOUNCED_IP && process.env.ANNOUNCED_IP !== '127.0.0.1'
+    ? process.env.ANNOUNCED_IP
+    : process.env.RENDER_EXTERNAL_URL
+    ? process.env.RENDER_EXTERNAL_URL.replace(/^https?:\/\//, '')
+    : undefined;
 
 /**
  * Standardized Media Codec Capabilities shared across ALL routers.
