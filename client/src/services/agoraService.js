@@ -43,31 +43,43 @@ class AgoraService {
       }
 
       console.log('[AGORA] Creating local microphone and camera tracks...');
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
-        {
-          AEC: true, // Acoustic Echo Cancellation
-          ANS: true, // Automatic Noise Suppression
-          AGC: true  // Automatic Gain Control
-        },
-        {
-          encoderConfig: {
-            width: { ideal: 640, max: 1280 },
-            height: { ideal: 480, max: 720 },
-            frameRate: 30,
-            bitrateMin: 300,
-            bitrateMax: 800
+      let audioTrack = null;
+      let videoTrack = null;
+
+      try {
+        [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+          {
+            AEC: true,
+            ANS: true,
+            AGC: true
           },
-          facingMode: 'user'
+          {
+            encoderConfig: {
+              width: { ideal: 640, max: 1280 },
+              height: { ideal: 480, max: 720 },
+              frameRate: 30,
+              bitrateMin: 300,
+              bitrateMax: 800
+            },
+            facingMode: 'user'
+          }
+        );
+      } catch (trackError) {
+        console.warn('[AGORA] Standard camera creation failed, trying audio-only or fallback:', trackError.message);
+        try {
+          audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        } catch (aErr) {
+          console.warn('[AGORA] Microphone access also failed:', aErr.message);
         }
-      );
+      }
 
       this.localAudioTrack = audioTrack;
       this.localVideoTrack = videoTrack;
 
       return { audioTrack, videoTrack };
     } catch (error) {
-      console.error('[AGORA] Error creating local tracks:', error);
-      throw error;
+      console.error('[AGORA] Error in local tracks initialization:', error);
+      return { audioTrack: null, videoTrack: null };
     }
   }
 
@@ -130,17 +142,21 @@ class AgoraService {
         if (onUserLeft) onUserLeft(user);
       });
 
-      // Join Agora Channel
+      // Join Agora Channel with Token (if Primary Certificate is enabled)
+      const activeToken = token || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_AGORA_TOKEN) || null;
       const numericOrStringUid = uid || Math.floor(Math.random() * 1000000);
-      console.log(`[AGORA] Joining channel "${channelName}" with AppID: ${activeAppId}, UID: ${numericOrStringUid}...`);
-      await client.join(activeAppId, channelName, token || null, numericOrStringUid);
+      console.log(`[AGORA] Joining channel "${channelName}" with AppID: ${activeAppId}, Token: ${activeToken ? 'YES' : 'NONE (Tokenless)'}, UID: ${numericOrStringUid}...`);
+      await client.join(activeAppId, channelName, activeToken, numericOrStringUid);
 
       // Start local media tracks if not already started
       const { audioTrack, videoTrack } = await this.startLocalTracks();
 
-      // Publish local tracks to channel
-      console.log('[AGORA] Publishing local audio and video tracks to channel...');
-      await client.publish([audioTrack, videoTrack]);
+      // Publish local tracks to channel if available
+      const tracksToPublish = [audioTrack, videoTrack].filter(Boolean);
+      if (tracksToPublish.length > 0) {
+        console.log(`[AGORA] Publishing ${tracksToPublish.length} local track(s) to channel...`);
+        await client.publish(tracksToPublish);
+      }
       console.log('[AGORA 🎉] Joined and Published successfully!');
 
       return { uid: numericOrStringUid, client };
