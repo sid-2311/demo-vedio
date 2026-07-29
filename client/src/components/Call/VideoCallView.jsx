@@ -7,6 +7,7 @@ import {
 import { searchMatch } from '../../services/matchmakingService';
 import { p2pSignaling } from '../../services/p2pSignaling';
 import { mediasoupClientService } from '../../services/mediasoupClientService';
+import { agoraService } from '../../services/agoraService';
 import { useModeration } from '../../context/ModerationContext';
 import { useWallet } from '../../context/WalletContext';
 import { useAuth } from '../../context/AuthContext';
@@ -839,12 +840,63 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
     }
   }, [callState, callMode, hasCamStream, matchedUser, isP2PCall]);
 
+  // Agora RTC Connection Handler for Call Connected State
+  useEffect(() => {
+    if (callState === 'connected') {
+      const activeChannel = sessionId || `agora_room_${p2pSignaling.peerId}`;
+      console.log(`[AGORA] Call Connected! Joining Agora Channel: ${activeChannel}`);
+
+      const getHash = (str) => {
+        if (!str) return Math.floor(Math.random() * 100000);
+        let h = 0;
+        for (let i = 0; i < str.length; i++) {
+          h = (h << 5) - h + str.charCodeAt(i);
+          h |= 0;
+        }
+        return Math.abs(h);
+      };
+
+      agoraService.joinChannel({
+        channelName: activeChannel,
+        uid: user?.id ? getHash(user.id) : Math.floor(Math.random() * 100000),
+        onUserJoined: (remoteUser, mediaType) => {
+          console.log('[AGORA] Remote User Published Stream:', remoteUser.uid, mediaType);
+          if (mediaType === 'video') {
+            setTimeout(() => {
+              const container = document.getElementById('agora-remote-player');
+              if (container) {
+                agoraService.playRemoteVideo(remoteUser, container);
+              }
+            }, 300);
+          }
+        },
+        onUserLeft: (remoteUser) => {
+          console.log('[AGORA] Remote User Left:', remoteUser.uid);
+        }
+      }).then(() => {
+        setTimeout(() => {
+          const localContainer = document.getElementById('agora-local-player');
+          if (localContainer) {
+            agoraService.playLocalVideo(localContainer);
+          }
+        }, 300);
+      }).catch((err) => {
+        console.warn('[AGORA Notice]:', err.message);
+      });
+
+      return () => {
+        agoraService.leaveChannel();
+      };
+    }
+  }, [callState, sessionId, user]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       clearInterval(timerRef.current);
       stopLocalCamera();
       cleanupP2P();
+      agoraService.leaveChannel();
     };
   }, [stopLocalCamera, cleanupP2P]);
 
@@ -1528,6 +1580,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
                   />
                 ) : (
                   <>
+                    <div id="agora-remote-player" className="w-full h-full absolute inset-0 z-10 pointer-events-none overflow-hidden" />
                     <video
                       ref={remoteVideoRef}
                       autoPlay
@@ -1609,6 +1662,7 @@ export const VideoCallView = ({ onReport, walletFilters, onOpenWallet, onOpenAut
 
               {/* Video Content / Local WebCam Stream */}
               <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                <div id="agora-local-player" className="w-full h-full absolute inset-0 z-10 pointer-events-none overflow-hidden" style={{ transform: 'scaleX(-1)' }} />
                 <video
                   ref={localVideoRef}
                   autoPlay
